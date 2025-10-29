@@ -1,0 +1,78 @@
+name: Build, Push Docker Images and Deploy to Kubernetes
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Checkout do código
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 2️⃣ Configurar Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 3️⃣ Login no Docker Hub
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 4️⃣ Build e Push do frontend (Angular)
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./client
+          push: true
+          tags: guisilva1k2k/frontend-ecommerce:dev1.1
+          no-cache: true
+          pull: true
+
+      # 5️⃣ Instalar kubectl
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      # 6️⃣ Configurar credenciais do Kubernetes
+      - name: Configure Kubernetes credentials
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > $HOME/.kube/config
+          echo "✅ kubeconfig aplicado com sucesso"
+          kubectl cluster-info --insecure-skip-tls-verify || echo "⚠️ Aviso: verifique o acesso ao cluster"
+
+      # 7️⃣ Aplicar manifests do Kubernetes
+      - name: Apply Kubernetes manifests
+        run: |
+          echo "📦 Aplicando manifests no cluster..."
+          kubectl apply -f k8s/10-mysql-service.yaml --validate=false --insecure-skip-tls-verify
+          kubectl apply -f k8s/11-mysql-statefulset.yaml --validate=false --insecure-skip-tls-verify
+          kubectl apply -f k8s/20-backend-service.yaml --validate=false --insecure-skip-tls-verify
+          kubectl apply -f k8s/21-backend-deployment.yaml --validate=false --insecure-skip-tls-verify
+          kubectl apply -f k8s/30-frontend-service.yaml --validate=false --insecure-skip-tls-verify
+          kubectl apply -f k8s/31-frontend-deployment.yaml --validate=false --insecure-skip-tls-verify
+          echo "✅ Manifests aplicados com sucesso!"
+
+      # 8️⃣ Atualizar imagens no cluster (mantendo o backend do professor)
+      - name: Atualizar imagens no Kubernetes
+        run: |
+          echo "🔁 Atualizando imagens..."
+          kubectl set image deployment/backend app=pedrobrantis/backend:deploy -n app-demo --insecure-skip-tls-verify
+          kubectl set image deployment/frontend app=vitordissected/angular-ecommerce-frontend:latest -n app-demo --insecure-skip-tls-verify
+          echo "✅ Imagens atualizadas com sucesso!"
+
+      # 9️⃣ Verificar status dos deployments
+      - name: Verificar status do deploy
+        run: |
+          echo "🕓 Aguardando os pods ficarem prontos..."
+          kubectl rollout status deployment/backend -n app-demo --insecure-skip-tls-verify
+          kubectl rollout status deployment/frontend -n app-demo --insecure-skip-tls-verify
+          echo "✅ Deploy concluído com sucesso!"
