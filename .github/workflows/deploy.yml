@@ -61,7 +61,7 @@ jobs:
         run: |
           echo "🔁 Atualizando imagens no cluster..."
           kubectl set image deployment/backend app=pedrobrantis/backend:deploy -n app-demo --insecure-skip-tls-verify
-          kubectl set image deployment/frontend web=guisilva1k2k/frontend-ecommerce:dev -n app-demo --insecure-skip-tls-verify
+          kubectl set image deployment/frontend web=guisilva1k2k/frontend-ecommerce:deploy -n app-demo --insecure-skip-tls-verify
           echo "✅ Imagens atualizadas com sucesso!"
 
       # 9️⃣ Verificar o status dos deployments (garantir que subiram)
