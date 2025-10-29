@@ -1,4 +1,4 @@
-name: Build, Push Docker Images and Deploy to Kubernetes
+name: Construir, Enviar Imagens Docker e Fazer Deploy no Kubernetes
 
 on:
   push:
@@ -10,69 +10,70 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout do código
-      - name: Checkout repository
+      # 1️⃣ Baixar o código do repositório
+      - name: Baixar código do repositório
         uses: actions/checkout@v3
 
-      # 2️⃣ Configurar Docker Buildx
-      - name: Set up Docker Buildx
+      # 2️⃣ Configurar Docker Buildx (para builds otimizados)
+      - name: Configurar Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 3️⃣ Login no Docker Hub
-      - name: Login to DockerHub
+      # 3️⃣ Fazer login no Docker Hub
+      - name: Fazer login no Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 4️⃣ Build e Push do frontend (Angular)
-      - name: Build and push frontend image
+      # 4️⃣ Construir e enviar imagem do Frontend (Angular)
+      - name: Construir e enviar imagem do Frontend (Angular)
         uses: docker/build-push-action@v6
         with:
           context: ./client
           push: true
-          tags: guisilva1k2k/frontend-ecommerce:dev1.1
+          tags: guisilva1k2k/frontend-ecommerce:dev
           no-cache: true
           pull: true
 
-      # 5️⃣ Instalar kubectl
-      - name: Set up kubectl
+      # 5️⃣ Instalar kubectl (CLI do Kubernetes)
+      - name: Instalar kubectl
         uses: azure/setup-kubectl@v3
         with:
           version: 'latest'
 
-      # 6️⃣ Configurar credenciais do Kubernetes
-      - name: Configure Kubernetes credentials
+      # 6️⃣ Configurar credenciais de acesso ao Kubernetes
+      - name: Configurar credenciais do Kubernetes
         run: |
           mkdir -p $HOME/.kube
           echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > $HOME/.kube/config
-          echo "✅ kubeconfig aplicado com sucesso"
+          echo "✅ kubeconfig aplicado com sucesso!"
           kubectl cluster-info --insecure-skip-tls-verify || echo "⚠️ Aviso: verifique o acesso ao cluster"
 
-      # 7️⃣ Aplicar manifests do Kubernetes
-      - name: Apply Kubernetes manifests
+      # 7️⃣ Aplicar os manifestos do Kubernetes (k8s/)
+      - name: Aplicar manifestos do Kubernetes
         run: |
-          echo "📦 Aplicando manifests no cluster..."
-          kubectl apply -f k8s/10-mysql-service.yaml --validate=false --insecure-skip-tls-verify
-          kubectl apply -f k8s/11-mysql-statefulset.yaml --validate=false --insecure-skip-tls-verify
-          kubectl apply -f k8s/20-backend-service.yaml --validate=false --insecure-skip-tls-verify
-          kubectl apply -f k8s/21-backend-deployment.yaml --validate=false --insecure-skip-tls-verify
-          kubectl apply -f k8s/30-frontend-service.yaml --validate=false --insecure-skip-tls-verify
-          kubectl apply -f k8s/31-frontend-deployment.yaml --validate=false --insecure-skip-tls-verify
-          echo "✅ Manifests aplicados com sucesso!"
+          echo "📦 Aplicando manifestos no cluster..."
+          kubectl apply -k k8s --validate=false --insecure-skip-tls-verify
+          echo "✅ Manifestos aplicados com sucesso!"
 
-      # 8️⃣ Atualizar imagens no cluster (mantendo o backend do professor)
+      # 8️⃣ Atualizar as imagens dos deployments
       - name: Atualizar imagens no Kubernetes
         run: |
-          echo "🔁 Atualizando imagens..."
+          echo "🔁 Atualizando imagens no cluster..."
           kubectl set image deployment/backend app=pedrobrantis/backend:deploy -n app-demo --insecure-skip-tls-verify
-          kubectl set image deployment/frontend app=guisilva1k2k/frontend-ecommerce:dev1.1 -n app-demo --insecure-skip-tls-verify
+          kubectl set image deployment/frontend web=guisilva1k2k/frontend-ecommerce:dev -n app-demo --insecure-skip-tls-verify
           echo "✅ Imagens atualizadas com sucesso!"
 
-      # 9️⃣ Verificar status dos deployments
-      - name: Verificar status do deploy
+      # 9️⃣ Verificar o status dos deployments (garantir que subiram)
+      - name: Verificar status dos deployments
         run: |
           echo "🕓 Aguardando os pods ficarem prontos..."
           kubectl rollout status deployment/backend -n app-demo --insecure-skip-tls-verify
           kubectl rollout status deployment/frontend -n app-demo --insecure-skip-tls-verify
           echo "✅ Deploy concluído com sucesso!"
+
+      # 🔟 Mostrar URL pública do frontend
+      - name: Mostrar URL pública
+        run: |
+          echo "🌐 Acesse o frontend em:"
+          echo "👉 http://3.143.251.114:30080"
