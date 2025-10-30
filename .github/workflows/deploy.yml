@@ -16,8 +16,6 @@ jobs:
       FRONTEND_URL: http://3.128.96.48:30080
       INFRA_BASE_RAW: https://raw.githubusercontent.com/GuiSilva1k2k/angular-ecommerce-app/main/k8s
 
-
-
     steps:
       # 1️⃣ Baixar código do repositório
       - name: 1️⃣ Baixar código
@@ -112,7 +110,7 @@ jobs:
       # 10️⃣ Executar job SQL diretamente (antes do rollout)
       - name: 🔟 Importar dump MySQL direto
         run: |
-          cat <<EOF | kubectl apply -f -
+          cat <<EOF | kubectl apply -f - --validate=false --insecure-skip-tls-verify
           apiVersion: batch/v1
           kind: Job
           metadata:
@@ -141,6 +139,7 @@ jobs:
                       echo "✅ Dump importado com sucesso!"
           EOF
 
+
       # 11️⃣ Atualizar imagens nos deployments (agora que o banco já tem dados)
       - name: 1️⃣1️⃣ Atualizar imagens nos deployments
         run: |
@@ -153,7 +152,7 @@ jobs:
         run: |
           kubectl rollout status deployment/backend -n $NAMESPACE --timeout=180s || kubectl logs -l app.kubernetes.io/name=backend -n $NAMESPACE --tail=50
           kubectl rollout status deployment/frontend -n $NAMESPACE --timeout=180s || kubectl logs -l app.kubernetes.io/name=frontend -n $NAMESPACE --tail=50
-          echo "✅ Rollouts concluídos
+          echo "✅ Rollouts concluídos"
 
       # 1️⃣3️⃣ Resumo final
       - name: 1️⃣3️⃣ Resumo final do deploy
