@@ -65,16 +65,15 @@ jobs:
           echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > $HOME/.kube/config
           sed -i 's/127.0.0.1/3.128.96.48/g' $HOME/.kube/config
 
-          # Alias para kubectl ignorando TLS
-          alias k='kubectl --insecure-skip-tls-verify'
-
           # Criar namespace se não existir
-          $k get ns $NAMESPACE || $k create ns $NAMESPACE
+          kubectl get ns $NAMESPACE --insecure-skip-tls-verify || \
+          kubectl create ns $NAMESPACE --insecure-skip-tls-verify
 
           echo "✅ kubeconfig aplicado com sucesso"
 
           # Verificar acesso ao cluster
-          $k cluster-info || echo "⚠️ Aviso: verifique o acesso ao cluster"
+          kubectl cluster-info --insecure-skip-tls-verify || echo "⚠️ Aviso: verifique o acesso ao cluster"
+
       # 8️⃣ Baixar manifestos Kubernetes automaticamente
       - name: 8️⃣ Baixar manifestos K8s (infra externa)
         run: |
