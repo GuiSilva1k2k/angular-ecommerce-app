@@ -12,7 +12,7 @@ jobs:
       NAMESPACE: app-demo
       DOCKER_USER: guisilva1k2k
       BACKEND_TAG: deploy
-      FRONTEND_TAG: dev
+      FRONTEND_TAG: dev2
       FRONTEND_URL: http://3.128.96.48:30080
       INFRA_BASE: https://raw.githubusercontent.com/guisilva1k2k/loja-infra/main/k8s
 
@@ -78,7 +78,7 @@ jobs:
             curl -fsSL "$INFRA_BASE/$f" -o "k8s/$f"
           done
           test -s k8s/kustomization.yaml || { echo "❌ Falha ao baixar kustomization.yaml"; exit 1; }
-          echo "✅ Manifestos baixados com sucesso"
+          echo "✅ Manifestos baixados com sucesso!"
 
       # 9️⃣ Aplicar manifestos do Kubernetes
       - name: 9️⃣ Aplicar manifestos Kubernetes
@@ -91,8 +91,8 @@ jobs:
       - name: 🔟 Atualizar imagens nos deployments
         run: |
           echo "🔁 Atualizando imagens no cluster..."
-          kubectl set image deployment/backend app=${{ env.DOCKER_USER }}/backend:${{ env.BACKEND_TAG }} -n $NAMESPACE --insecure-skip-tls-verify
-          kubectl set image deployment/frontend web=${{ env.DOCKER_USER }}/frontend:${{ env.FRONTEND_TAG }} -n $NAMESPACE --insecure-skip-tls-verify
+          kubectl set image deployment/backend app=${{ env.DOCKER_USER }}/backend-ecommerce:${{ env.BACKEND_TAG }} -n $NAMESPACE --insecure-skip-tls-verify
+          kubectl set image deployment/frontend web=${{ env.DOCKER_USER }}/frontend-ecommerce:${{ env.FRONTEND_TAG }} -n $NAMESPACE --insecure-skip-tls-verify
           echo "✅ Imagens atualizadas com sucesso!"
 
       # 1️⃣1️⃣ Verificar status dos deployments
