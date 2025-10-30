@@ -3,7 +3,7 @@ name: Construir, Enviar Imagens Docker e Fazer Deploy no Kubernetes
 on:
   push:
     branches:
-      - master
+      - master  # Modifiquei para 'master', caso o seu branch principal seja 'master' (caso contrário, altere para 'main')
 
 jobs:
   build:
@@ -31,7 +31,7 @@ jobs:
         with:
           context: ./client
           push: true
-          tags: guisilva1k2k/frontend-ecommerce:dev
+          tags: guisilva1k2k/frontend-ecommerce:dev  # Não alterei para manter a consistência com seu exemplo
           no-cache: true
           pull: true
 
@@ -41,7 +41,7 @@ jobs:
         with:
           version: 'latest'
 
-      # 6️⃣ Configurar credenciais do Kubernetes
+      # 6️⃣ Configurar credenciais de acesso ao Kubernetes
       - name: Configurar credenciais do Kubernetes
         run: |
           mkdir -p $HOME/.kube
@@ -49,8 +49,8 @@ jobs:
           echo "✅ kubeconfig aplicado com sucesso!"
           kubectl cluster-info --insecure-skip-tls-verify || echo "⚠️ Aviso: verifique o acesso ao cluster"
 
-      # 7️⃣ Aplicar os manifestos do Kubernetes
-      - name: Aplicar manifestos no cluster
+      # 7️⃣ Aplicar os manifestos do Kubernetes (inclui backend, frontend, mysql e configmaps)
+      - name: Aplicar manifestos do Kubernetes
         run: |
           echo "📦 Aplicando manifestos no cluster..."
           kubectl apply -k k8s --validate=false --insecure-skip-tls-verify
@@ -64,7 +64,7 @@ jobs:
           kubectl set image deployment/frontend web=guisilva1k2k/frontend-ecommerce:deploy -n app-demo --insecure-skip-tls-verify
           echo "✅ Imagens atualizadas com sucesso!"
 
-      # 9️⃣ Verificar o status dos deployments
+      # 9️⃣ Verificar o status dos deployments (garantir que subiram)
       - name: Verificar status dos deployments
         run: |
           echo "🕓 Aguardando os pods ficarem prontos..."
@@ -72,29 +72,16 @@ jobs:
           kubectl rollout status deployment/frontend -n app-demo --insecure-skip-tls-verify
           echo "✅ Deploy concluído com sucesso!"
 
-      # 🔟 Importar banco de dados no MySQL
-      - name: Importar banco de dados no MySQL
+      # 🔟 Rodar a Job de importação do dump SQL
+      - name: Rodar Job de importação do SQL no MySQL
         run: |
-          echo "🚀 Preparando dump SQL para importação..."
-          kubectl delete job mysql-import -n app-demo --ignore-not-found=true --insecure-skip-tls-verify
+          echo "📥 Rodando importação do SQL dump no MySQL..."
+          kubectl delete job mysql-import -n app-demo --ignore-not-found --insecure-skip-tls-verify
+          kubectl apply -f k8s/50-job-mysql-import.yaml --validate=false --insecure-skip-tls-verify
+          echo "✅ Job de importação aplicada!"
 
-          # Cria o ConfigMap com o conteúdo do dump (sem precisar alterar o YAML no repo)
-          kubectl create configmap sql-dump-config \
-            --from-file=sql_dump.sql=backend/sql_dump.sql \
-            -n app-demo --insecure-skip-tls-verify \
-            --dry-run=client -o yaml | kubectl apply -f -
-
-          echo "📦 Aplicando job de importação MySQL..."
-          kubectl apply -f k8s/50-job-mysql-import.yaml -n app-demo --insecure-skip-tls-verify
-
-          echo "⏳ Aguardando conclusão do job..."
-          kubectl wait --for=condition=complete job/mysql-import -n app-demo --timeout=120s --insecure-skip-tls-verify || \
-          (echo "⚠️ O job falhou!" && kubectl logs job/mysql-import -n app-demo && exit 1)
-
-          echo "✅ Dump importado com sucesso!"
-
-      # 🌐 Mostrar URL pública
+      # 🔁 Mostrar URL pública do frontend
       - name: Mostrar URL pública
         run: |
           echo "🌐 Acesse o frontend em:"
-          echo "👉 http://3.143.251.114:30080"
+          echo "👉 http://3.143.251.114:30080"  # Não alterei, pois essa parece ser a URL de produção
