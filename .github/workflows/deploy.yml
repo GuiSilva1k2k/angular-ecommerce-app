@@ -70,8 +70,6 @@ jobs:
           kubectl create ns $NAMESPACE --insecure-skip-tls-verify
 
           echo "✅ kubeconfig aplicado com sucesso"
-
-          # Verificar acesso ao cluster
           kubectl cluster-info --insecure-skip-tls-verify || echo "⚠️ Aviso: verifique o acesso ao cluster"
 
       # 8️⃣ Baixar manifestos Kubernetes automaticamente
@@ -79,7 +77,7 @@ jobs:
         run: |
           set -e
           mkdir -p k8s
-          for f in 00-namespace.yaml 01-secret-mysql.yaml 02-configmap-app.yaml 03-configmap-mysql-init.yaml 04-configmap-mysql-dump.yaml 10-mysql-service.yaml 11-mysql-statefulset.yaml 20-backend-service.yaml 21-backend-deployment.yaml 30-frontend-service.yaml 31-frontend-deployment.yaml 50-job-mysql-import.yaml kustomization.yaml; do
+          for f in 00-namespace.yaml 01-secret-mysql.yaml 02-configmap-app.yaml 03-configmap-mysql-init.yaml 10-mysql-service.yaml 11-mysql-statefulset.yaml 20-backend-service.yaml 21-backend-deployment.yaml 30-frontend-service.yaml 31-frontend-deployment.yaml kustomization.yaml; do
             echo "⬇  Baixando $f"
             curl -fsSL "$INFRA_BASE/$f" -o "k8s/$f"
           done
@@ -92,26 +90,51 @@ jobs:
           kubectl apply -k k8s --validate=false --insecure-skip-tls-verify
           echo "✅ Manifestos aplicados com sucesso"
 
-      # 🔟 Atualizar imagens dos deployments
-      - name: 🔟 Atualizar imagens nos deployments
+      # 10️⃣ Executar job SQL diretamente (antes do rollout)
+      - name: 🔟 Importar dump MySQL direto
+        run: |
+          cat <<EOF | kubectl apply -f -
+          apiVersion: batch/v1
+          kind: Job
+          metadata:
+            name: mysql-import
+            namespace: $NAMESPACE
+          spec:
+            backoffLimit: 4
+            template:
+              spec:
+                restartPolicy: Never
+                containers:
+                - name: mysql-import
+                  image: mysql:5.7
+                  envFrom:
+                  - secretRef:
+                      name: mysql-secret
+                  command: ["sh", "-c"]
+                  args:
+                    - |
+                      echo "✅ Baixando dump SQL..."
+                      curl -fsSL https://raw.githubusercontent.com/GuiSilva1k2k/angular-ecommerce-app/main/sql_dump.sql -o /tmp/sql_dump.sql
+                      echo "✅ Executando dump no MySQL..."
+                      mysql -h mysql-0.mysql.app-demo.svc.cluster.local \
+                            -u \${MYSQL_USER} -p\${MYSQL_PASSWORD} \${MYSQL_DATABASE} \
+                            < /tmp/sql_dump.sql
+                      echo "✅ Dump importado com sucesso!"
+          EOF
+
+      # 11️⃣ Atualizar imagens nos deployments (agora que o banco já tem dados)
+      - name: 1️⃣1️⃣ Atualizar imagens nos deployments
         run: |
           kubectl set image deployment/backend app=${{ env.DOCKER_USER }}/backend-ecommerce:${{ env.BACKEND_TAG }} -n $NAMESPACE --insecure-skip-tls-verify
           kubectl set image deployment/frontend web=${{ env.DOCKER_USER }}/frontend-ecommerce:${{ env.FRONTEND_TAG }} -n $NAMESPACE --insecure-skip-tls-verify
           echo "✅ Imagens atualizadas"
 
-      # 1️⃣1️⃣ Aguardar rollout dos deployments
-      - name: 1️⃣1️⃣ Aguardar rollout dos deployments
+      # 12️⃣ Aguardar rollout dos deployments
+      - name: 1️⃣2️⃣ Aguardar rollout dos deployments
         run: |
           kubectl rollout status deployment/backend -n $NAMESPACE --timeout=180s || kubectl logs -l app.kubernetes.io/name=backend -n $NAMESPACE --tail=50
           kubectl rollout status deployment/frontend -n $NAMESPACE --timeout=180s || kubectl logs -l app.kubernetes.io/name=frontend -n $NAMESPACE --tail=50
-          echo "✅ Rollouts concluídos"
-
-      # 1️⃣2️⃣ Executar job SQL (opcional)
-      - name: 1️⃣2️⃣ Executar job SQL de importação (opcional)
-        run: |
-          kubectl delete job mysql-import -n $NAMESPACE --ignore-not-found --insecure-skip-tls-verify
-          kubectl apply -f k8s/50-job-mysql-import.yaml -n $NAMESPACE --validate=false --insecure-skip-tls-verify
-          echo "✅ Job SQL aplicada"
+          echo "✅ Rollouts concluídos
 
       # 1️⃣3️⃣ Resumo final
       - name: 1️⃣3️⃣ Resumo final do deploy
