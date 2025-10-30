@@ -14,7 +14,7 @@ jobs:
       BACKEND_TAG: deploy
       FRONTEND_TAG: dev2
       FRONTEND_URL: http://3.128.96.48:30080
-      INFRA_BASE: https://raw.githubusercontent.com/guisilva1k2k/loja-infra/main/k8s
+      INFRA_BASE: https://github.com/GuiSilva1k2k/angular-ecommerce-app/tree/main/k8s
 
     steps:
       # 1️⃣ Baixar código do repositório
