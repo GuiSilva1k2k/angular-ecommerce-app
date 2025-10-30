@@ -84,6 +84,8 @@ jobs:
           test -s k8s/kustomization.yaml || { echo "❌ Falha ao baixar kustomization.yaml"; exit 1; }
           echo "✅ Manifestos baixados com sucesso"
 
+
+
       # 9️⃣ Aplicar manifestos no cluster
       - name: 9️⃣ Aplicar manifestos Kubernetes
         run: |
