@@ -14,7 +14,7 @@ jobs:
       BACKEND_TAG: deploy
       FRONTEND_TAG: dev2
       FRONTEND_URL: http://3.128.96.48:30080
-      INFRA_BASE_RAW="https://raw.githubusercontent.com/GuiSilva1k2k/angular-ecommerce-app/main/k8s"
+      INFRA_BASE_RAW: https://raw.githubusercontent.com/GuiSilva1k2k/angular-ecommerce-app/main/k8s
 
 
 
