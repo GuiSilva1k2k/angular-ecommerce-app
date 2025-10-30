@@ -150,8 +150,8 @@ jobs:
       # 12️⃣ Aguardar rollout dos deployments
       - name: 1️⃣2️⃣ Aguardar rollout dos deployments
         run: |
-          kubectl rollout status deployment/backend -n $NAMESPACE --timeout=180s || kubectl logs -l app.kubernetes.io/name=backend -n $NAMESPACE --tail=50
-          kubectl rollout status deployment/frontend -n $NAMESPACE --timeout=180s || kubectl logs -l app.kubernetes.io/name=frontend -n $NAMESPACE --tail=50
+          kubectl rollout status deployment/backend -n $NAMESPACE --timeout=180s --insecure-skip-tls-verify || kubectl logs -l app.kubernetes.io/name=backend -n $NAMESPACE --tail=50 --insecure-skip-tls-verify
+          kubectl rollout status deployment/frontend -n $NAMESPACE --timeout=180s --insecure-skip-tls-verify || kubectl logs -l app.kubernetes.io/name=frontend -n $NAMESPACE --tail=50 --insecure-skip-tls-verify
           echo "✅ Rollouts concluídos"
 
       # 1️⃣3️⃣ Resumo final
