@@ -12,4 +12,4 @@ resources:
   - 21-backend-deployment.yaml
   - 30-frontend-service.yaml
   - 31-frontend-deployment.yaml
-  - 50-job-mysql-import.yaml
+  # - 50-job-mysql-import.yaml
