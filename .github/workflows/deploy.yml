@@ -13,8 +13,8 @@ jobs:
       DOCKER_USER: guisilva1k2k
       BACKEND_NAME: backend-ecommerce
       FRONTEND_NAME: frontend-ecommerce
-      BACKEND_TAG: deploy
-      FRONTEND_TAG: dev2.1
+      BACKEND_TAG: deploy1
+      FRONTEND_TAG: dev2.2
       FRONTEND_URL: http://3.128.96.48:30080
       INFRA_BASE_RAW: https://raw.githubusercontent.com/GuiSilva1k2k/angular-ecommerce-app/main/k8s
 
