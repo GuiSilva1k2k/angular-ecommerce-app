@@ -14,7 +14,9 @@ jobs:
       BACKEND_TAG: deploy
       FRONTEND_TAG: dev2
       FRONTEND_URL: http://3.128.96.48:30080
-      INFRA_BASE: https://github.com/GuiSilva1k2k/angular-ecommerce-app/tree/main/k8s
+      INFRA_BASE_RAW="https://raw.githubusercontent.com/GuiSilva1k2k/angular-ecommerce-app/main/k8s"
+
+
 
     steps:
       # 1️⃣ Baixar código do repositório
@@ -75,17 +77,26 @@ jobs:
       # 8️⃣ Baixar manifestos Kubernetes automaticamente
       - name: 8️⃣ Baixar manifestos K8s (infra externa)
         run: |
-          set -e
           mkdir -p k8s
-          for f in 00-namespace.yaml 01-secret-mysql.yaml 02-configmap-app.yaml 03-configmap-mysql-init.yaml 10-mysql-service.yaml 11-mysql-statefulset.yaml 20-backend-service.yaml 21-backend-deployment.yaml 30-frontend-service.yaml 31-frontend-deployment.yaml kustomization.yaml; do
-            echo "⬇  Baixando $f"
-            curl -fsSL "$INFRA_BASE/$f" -o "k8s/$f"
+          for f in \
+            00-namespace.yaml \
+            01-secret-mysql.yaml \
+            02-configmap-app.yaml \
+            03-configmap-mysql-init.yaml \
+            10-mysql-service.yaml \
+            11-mysql-statefulset.yaml \
+            20-backend-service.yaml \
+            21-backend-deployment.yaml \
+            30-frontend-service.yaml \
+            31-frontend-deployment.yaml \
+            kustomization.yaml; do
+            echo "⬇ Baixando $f"
+            curl -fsSL "${INFRA_BASE_RAW}/${f}" -o "k8s/${f}"
           done
 
-          # Verifica se kustomization.yaml existe
           test -s k8s/kustomization.yaml || { echo "❌ Falha ao baixar kustomization.yaml"; exit 1; }
 
-          # Remove caracteres \r (fim de linha do Windows)
+          # Remover fim de linha do Windows
           sed -i 's/\r//g' k8s/kustomization.yaml
 
           echo "✅ Manifestos baixados com sucesso"
