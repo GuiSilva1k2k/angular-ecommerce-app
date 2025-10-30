@@ -81,7 +81,13 @@ jobs:
             echo "⬇  Baixando $f"
             curl -fsSL "$INFRA_BASE/$f" -o "k8s/$f"
           done
+
+          # Verifica se kustomization.yaml existe
           test -s k8s/kustomization.yaml || { echo "❌ Falha ao baixar kustomization.yaml"; exit 1; }
+
+          # Remove caracteres \r (fim de linha do Windows)
+          sed -i 's/\r//g' k8s/kustomization.yaml
+
           echo "✅ Manifestos baixados com sucesso"
 
 
