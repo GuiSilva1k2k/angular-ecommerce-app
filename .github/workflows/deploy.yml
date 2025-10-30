@@ -54,7 +54,7 @@ jobs:
         run: |
           echo "📦 Aplicando manifestos no cluster..."
           kubectl apply -k k8s --validate=false --insecure-skip-tls-verify
-          echo "✅ Manifestos aplicados com sucesso!"
+          echo "✅ Manifestos aplicados com sucesso"
 
       # 8️⃣ Atualizar imagens dos deployments
       - name: Atualizar imagens no Kubernetes
