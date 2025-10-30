@@ -7,4 +7,4 @@ metadata:
 data:
   APP_ENV: "production"
   APP_LOG_LEVEL: "info"
-  PUBLIC_API_URL: "/api/v1/"
+  PUBLIC_API_URL: "http://3.128.96.48:30020/api/v1/"
