@@ -11,8 +11,10 @@ jobs:
     env:
       NAMESPACE: app-demo
       DOCKER_USER: guisilva1k2k
+      BACKEND_NAME: backend-ecommerce
+      FRONTEND_NAME: frontend-ecommerce
       BACKEND_TAG: deploy
-      FRONTEND_TAG: dev2
+      FRONTEND_TAG: dev2.1
       FRONTEND_URL: http://3.128.96.48:30080
       INFRA_BASE_RAW: https://raw.githubusercontent.com/GuiSilva1k2k/angular-ecommerce-app/main/k8s
 
@@ -38,7 +40,7 @@ jobs:
         with:
           context: ./backend
           push: true
-          tags: ${{ env.DOCKER_USER }}/backend:${{ env.BACKEND_TAG }}
+          tags: ${{ env.DOCKER_USER }}/${{ env.BACKEND_NAME }}:${{ env.BACKEND_TAG }}
           no-cache: true
           pull: true
 
@@ -48,7 +50,7 @@ jobs:
         with:
           context: ./client
           push: true
-          tags: ${{ env.DOCKER_USER }}/frontend:${{ env.FRONTEND_TAG }}
+          tags: ${{ env.DOCKER_USER }}/${{ env.FRONTEND_NAME }}:${{ env.FRONTEND_TAG }}
           no-cache: true
           pull: true
 
@@ -99,15 +101,13 @@ jobs:
 
           echo "✅ Manifestos baixados com sucesso"
 
-
-
       # 9️⃣ Aplicar manifestos no cluster
       - name: 9️⃣ Aplicar manifestos Kubernetes
         run: |
           kubectl apply -k k8s --validate=false --insecure-skip-tls-verify
           echo "✅ Manifestos aplicados com sucesso"
 
-      # 10️⃣ Executar job SQL diretamente (antes do rollout)
+      # 🔟 Importar dump MySQL direto
       - name: 🔟 Importar dump MySQL direto
         run: |
           cat <<EOF | kubectl apply -f - --validate=false --insecure-skip-tls-verify
@@ -139,15 +139,14 @@ jobs:
                       echo "✅ Dump importado com sucesso!"
           EOF
 
-
-      # 11️⃣ Atualizar imagens nos deployments (agora que o banco já tem dados)
+      # 1️⃣1️⃣ Atualizar imagens nos deployments
       - name: 1️⃣1️⃣ Atualizar imagens nos deployments
         run: |
-          kubectl set image deployment/backend app=${{ env.DOCKER_USER }}/backend-ecommerce:${{ env.BACKEND_TAG }} -n $NAMESPACE --insecure-skip-tls-verify
-          kubectl set image deployment/frontend web=${{ env.DOCKER_USER }}/frontend-ecommerce:${{ env.FRONTEND_TAG }} -n $NAMESPACE --insecure-skip-tls-verify
+          kubectl set image deployment/backend app=${{ env.DOCKER_USER }}/${{ env.BACKEND_NAME }}:${{ env.BACKEND_TAG }} -n $NAMESPACE --insecure-skip-tls-verify
+          kubectl set image deployment/frontend web=${{ env.DOCKER_USER }}/${{ env.FRONTEND_NAME }}:${{ env.FRONTEND_TAG }} -n $NAMESPACE --insecure-skip-tls-verify
           echo "✅ Imagens atualizadas"
 
-      # 12️⃣ Aguardar rollout dos deployments
+      # 1️⃣2️⃣ Aguardar rollout dos deployments
       - name: 1️⃣2️⃣ Aguardar rollout dos deployments
         run: |
           kubectl rollout status deployment/backend -n $NAMESPACE --timeout=180s --insecure-skip-tls-verify || kubectl logs -l app.kubernetes.io/name=backend -n $NAMESPACE --tail=50 --insecure-skip-tls-verify
@@ -157,7 +156,7 @@ jobs:
       # 1️⃣3️⃣ Resumo final
       - name: 1️⃣3️⃣ Resumo final do deploy
         run: |
-          echo "✅ Backend: ${{ env.DOCKER_USER }}/backend:${{ env.BACKEND_TAG }}"
-          echo "✅ Frontend: ${{ env.DOCKER_USER }}/frontend:${{ env.FRONTEND_TAG }}"
+          echo "✅ Backend: ${{ env.DOCKER_USER }}/${{ env.BACKEND_NAME }}:${{ env.BACKEND_TAG }}"
+          echo "✅ Frontend: ${{ env.DOCKER_USER }}/${{ env.FRONTEND_NAME }}:${{ env.FRONTEND_TAG }}"
           echo "🌐 URL pública do Frontend: ${{ env.FRONTEND_URL }}"
           echo "🚀 Deploy concluído com sucesso!"
