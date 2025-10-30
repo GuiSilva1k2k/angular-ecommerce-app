@@ -3,7 +3,7 @@ name: Construir, Enviar Imagens Docker e Fazer Deploy no Kubernetes
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   build:
