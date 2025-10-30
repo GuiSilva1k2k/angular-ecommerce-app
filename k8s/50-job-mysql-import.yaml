@@ -1,0 +1,24 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mysql-import
+  namespace: app-demo
+spec:
+  template:
+    spec:
+      containers:
+      - name: mysql-import
+        image: mysql:5.7
+        command: ["sh", "-c", "mysql -h mysql-0.mysql.app-demo.svc.cluster.local -u ${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} < /config/sql_dump.sql"]
+        envFrom:
+        - secretRef:
+            name: mysql-secret
+        volumeMounts:
+        - name: dump-volume
+          mountPath: /config
+      restartPolicy: Never
+      volumes:
+      - name: dump-volume
+        configMap:
+          name: sql-dump-config
+  backoffLimit: 4

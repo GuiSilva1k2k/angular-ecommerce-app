@@ -41,7 +41,7 @@ jobs:
         with:
           version: 'latest'
 
-      # 6️⃣ Configurar credenciais de acesso ao Kubernetes
+      # 6️⃣ Configurar credenciais do Kubernetes
       - name: Configurar credenciais do Kubernetes
         run: |
           mkdir -p $HOME/.kube
@@ -49,14 +49,14 @@ jobs:
           echo "✅ kubeconfig aplicado com sucesso!"
           kubectl cluster-info --insecure-skip-tls-verify || echo "⚠️ Aviso: verifique o acesso ao cluster"
 
-      # 7️⃣ Aplicar os manifestos do Kubernetes (k8s/)
-      - name: Aplicar manifestos do Kubernetes
+      # 7️⃣ Aplicar os manifestos do Kubernetes
+      - name: Aplicar manifestos no cluster
         run: |
           echo "📦 Aplicando manifestos no cluster..."
           kubectl apply -k k8s --validate=false --insecure-skip-tls-verify
           echo "✅ Manifestos aplicados com sucesso!"
 
-      # 8️⃣ Atualizar as imagens dos deployments
+      # 8️⃣ Atualizar imagens dos deployments
       - name: Atualizar imagens no Kubernetes
         run: |
           echo "🔁 Atualizando imagens no cluster..."
@@ -64,7 +64,7 @@ jobs:
           kubectl set image deployment/frontend web=guisilva1k2k/frontend-ecommerce:deploy -n app-demo --insecure-skip-tls-verify
           echo "✅ Imagens atualizadas com sucesso!"
 
-      # 9️⃣ Verificar o status dos deployments (garantir que subiram)
+      # 9️⃣ Verificar o status dos deployments
       - name: Verificar status dos deployments
         run: |
           echo "🕓 Aguardando os pods ficarem prontos..."
@@ -72,7 +72,28 @@ jobs:
           kubectl rollout status deployment/frontend -n app-demo --insecure-skip-tls-verify
           echo "✅ Deploy concluído com sucesso!"
 
-      # 🔟 Mostrar URL pública do frontend
+      # 🔟 Importar banco de dados no MySQL
+      - name: Importar banco de dados no MySQL
+        run: |
+          echo "🚀 Preparando dump SQL para importação..."
+          kubectl delete job mysql-import -n app-demo --ignore-not-found=true --insecure-skip-tls-verify
+
+          # Cria o ConfigMap com o conteúdo do dump (sem precisar alterar o YAML no repo)
+          kubectl create configmap sql-dump-config \
+            --from-file=sql_dump.sql=backend/sql_dump.sql \
+            -n app-demo --insecure-skip-tls-verify \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+          echo "📦 Aplicando job de importação MySQL..."
+          kubectl apply -f k8s/50-job-mysql-import.yaml -n app-demo --insecure-skip-tls-verify
+
+          echo "⏳ Aguardando conclusão do job..."
+          kubectl wait --for=condition=complete job/mysql-import -n app-demo --timeout=120s --insecure-skip-tls-verify || \
+          (echo "⚠️ O job falhou!" && kubectl logs job/mysql-import -n app-demo && exit 1)
+
+          echo "✅ Dump importado com sucesso!"
+
+      # 🌐 Mostrar URL pública
       - name: Mostrar URL pública
         run: |
           echo "🌐 Acesse o frontend em:"
