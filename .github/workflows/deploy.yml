@@ -114,7 +114,7 @@ jobs:
                   args:
                     - |
                       echo "✅ Baixando dump SQL..."
-                      curl -fsSL https://raw.githubusercontent.com/GuiSilva1k2k/angular-ecommerce-app/main/sql_dump.sql -o /tmp/sql_dump.sql
+                      curl -fsSL https://raw.githubusercontent.com/GuiSilva1k2k/angular-ecommerce-app/main/backend/sql_dump.sql -o /tmp/sql_dump.sql
                       echo "✅ Executando dump no MySQL..."
                       mysql -h mysql-0.mysql.app-demo.svc.cluster.local \
                             -u \${MYSQL_USER} -p\${MYSQL_PASSWORD} \${MYSQL_DATABASE} \
