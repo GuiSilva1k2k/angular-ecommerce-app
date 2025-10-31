@@ -14,7 +14,7 @@ jobs:
       BACKEND_NAME: backend-ecommerce
       FRONTEND_NAME: frontend-ecommerce
       BACKEND_TAG: latest
-      FRONTEND_TAG: dev8
+      FRONTEND_TAG: latest
       FRONTEND_URL: http://3.128.96.48:30080
 
     steps:
