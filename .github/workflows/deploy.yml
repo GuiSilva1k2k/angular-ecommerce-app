@@ -1,121 +1,89 @@
-name: 🚀 Construir, Enviar Imagens Docker e Deploy no Kubernetes (Universal)
+name: Construir, Enviar Imagens Docker e Fazer Deploy no Kubernetes
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - master  # Modifiquei para 'master', caso o seu branch principal seja 'master' (caso contrário, altere para 'main')
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
 
-    env:
-      NAMESPACE: app-demo
-      DOCKER_USER: guisilva1k2k
-      BACKEND_TAG: deploy
-      FRONTEND_TAG: dev
-      FRONTEND_URL: http://3.128.96.48:30080
-      INFRA_BASE: https://raw.githubusercontent.com/guisilva1k2k/loja-infra/main/k8s
-
     steps:
-      # 1️⃣ Baixar código do repositório
-      - name: 1️⃣ Baixar código
+      # 1️⃣ Baixar o código do repositório
+      - name: Baixar código do repositório
         uses: actions/checkout@v3
 
-      # 2️⃣ Configurar Docker Buildx
-      - name: 2️⃣ Configurar Docker Buildx
+      # 2️⃣ Configurar Docker Buildx (para builds otimizados)
+      - name: Configurar Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 3️⃣ Login no Docker Hub
-      - name: 3️⃣ Login no Docker Hub
+      # 3️⃣ Fazer login no Docker Hub
+      - name: Fazer login no Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ env.DOCKER_USER }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 4️⃣ Buildar e enviar imagem do Backend
-      - name: 4️⃣ Buildar e enviar imagem do Backend
-        uses: docker/build-push-action@v6
-        with:
-          context: ./backend
-          push: true
-          tags: ${{ env.DOCKER_USER }}/backend:${{ env.BACKEND_TAG }}
-          no-cache: true
-          pull: true
-
-      # 5️⃣ Buildar e enviar imagem do Frontend (Angular)
-      - name: 5️⃣ Buildar e enviar imagem do Frontend (Angular)
+      # 4️⃣ Construir e enviar imagem do Frontend (Angular)
+      - name: Construir e enviar imagem do Frontend (Angular)
         uses: docker/build-push-action@v6
         with:
           context: ./client
           push: true
-          tags: ${{ env.DOCKER_USER }}/frontend:${{ env.FRONTEND_TAG }}
+          tags: guisilva1k2k/frontend-ecommerce:dev  # Não alterei para manter a consistência com seu exemplo
           no-cache: true
           pull: true
 
-      # 6️⃣ Instalar kubectl
-      - name: 6️⃣ Instalar kubectl
+      # 5️⃣ Instalar kubectl (CLI do Kubernetes)
+      - name: Instalar kubectl
         uses: azure/setup-kubectl@v3
         with:
           version: 'latest'
 
-      # 7️⃣ Configurar credenciais de acesso ao Kubernetes
-      - name: 7️⃣ Configurar kubeconfig
+      # 6️⃣ Configurar credenciais de acesso ao Kubernetes
+      - name: Configurar credenciais do Kubernetes
         run: |
           mkdir -p $HOME/.kube
           echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > $HOME/.kube/config
-          sed -i 's/127.0.0.1/3.128.96.48/g' $HOME/.kube/config
-          kubectl get ns $NAMESPACE || kubectl create ns $NAMESPACE
+          sed -i 's/127.0.0.1/3.143.251.114/g' $HOME/.kube/config
           echo "✅ kubeconfig aplicado com sucesso!"
           kubectl cluster-info --insecure-skip-tls-verify || echo "⚠️ Aviso: verifique o acesso ao cluster"
 
-      # 8️⃣ Baixar manifestos Kubernetes automaticamente
-      - name: 8️⃣ Baixar manifestos K8s (infra externa)
-        run: |
-          set -e
-          mkdir -p k8s
-          for f in 00-namespace.yaml 01-secret-mysql.yaml 02-configmap-app.yaml 03-configmap-mysql-init.yaml 04-configmap-mysql-dump.yaml 10-mysql-service.yaml 11-mysql-statefulset.yaml 20-backend-service.yaml 21-backend-deployment.yaml 30-frontend-service.yaml 31-frontend-deployment.yaml 50-job-mysql-import.yaml kustomization.yaml; do
-            echo "⬇  Baixando $f"
-            curl -fsSL "$INFRA_BASE/$f" -o "k8s/$f"
-          done
-          test -s k8s/kustomization.yaml || { echo "❌ Falha ao baixar kustomization.yaml"; exit 1; }
-          echo "✅ Manifestos baixados com sucesso"
 
-      # 9️⃣ Aplicar manifestos do Kubernetes
-      - name: 9️⃣ Aplicar manifestos Kubernetes
+      # 7️⃣ Aplicar os manifestos do Kubernetes (inclui backend, frontend, mysql e configmaps)
+      - name: Aplicar manifestos do Kubernetes
         run: |
           echo "📦 Aplicando manifestos no cluster..."
           kubectl apply -k k8s --validate=false --insecure-skip-tls-verify
           echo "✅ Manifestos aplicados com sucesso"
 
-      # 🔟 Atualizar imagens dos deployments
-      - name: 🔟 Atualizar imagens nos deployments
+      # 8️⃣ Atualizar imagens dos deployments
+      - name: Atualizar imagens no Kubernetes
         run: |
           echo "🔁 Atualizando imagens no cluster..."
-          kubectl set image deployment/backend app=${{ env.DOCKER_USER }}/backend:${{ env.BACKEND_TAG }} -n $NAMESPACE --insecure-skip-tls-verify
-          kubectl set image deployment/frontend web=${{ env.DOCKER_USER }}/frontend:${{ env.FRONTEND_TAG }} -n $NAMESPACE --insecure-skip-tls-verify
+          kubectl set image deployment/backend app=pedrobrantis/backend:deploy -n app-demo --insecure-skip-tls-verify
+          kubectl set image deployment/frontend web=guisilva1k2k/frontend-ecommerce:deploy -n app-demo --insecure-skip-tls-verify
           echo "✅ Imagens atualizadas com sucesso!"
 
-      # 1️⃣1️⃣ Verificar status dos deployments
-      - name: 1️⃣1️⃣ Aguardar rollout dos deployments
+      # 9️⃣ Verificar o status dos deployments (garantir que subiram)
+      - name: Verificar status dos deployments
         run: |
           echo "🕓 Aguardando os pods ficarem prontos..."
-          kubectl rollout status deployment/backend -n $NAMESPACE --timeout=180s || kubectl logs -l app.kubernetes.io/name=backend -n $NAMESPACE --tail=50
-          kubectl rollout status deployment/frontend -n $NAMESPACE --timeout=180s || kubectl logs -l app.kubernetes.io/name=frontend -n $NAMESPACE --tail=50
-          echo "✅ Rollouts concluídos!"
+          kubectl rollout status deployment/backend -n app-demo --insecure-skip-tls-verify
+          kubectl rollout status deployment/frontend -n app-demo --insecure-skip-tls-verify
+          echo "✅ Deploy concluído com sucesso!"
 
-      # 1️⃣2️⃣ Rodar Job de importação do dump SQL
-      - name: 1️⃣2️⃣ Executar job SQL de importação (opcional)
+      # 🔟 Rodar a Job de importação do dump SQL
+      - name: Rodar Job de importação do SQL no MySQL
         run: |
           echo "📥 Rodando importação do SQL dump no MySQL..."
-          kubectl delete job mysql-import -n $NAMESPACE --ignore-not-found --insecure-skip-tls-verify
-          kubectl apply -f k8s/50-job-mysql-import.yaml -n $NAMESPACE --validate=false --insecure-skip-tls-verify
+          kubectl delete job mysql-import -n app-demo --ignore-not-found --insecure-skip-tls-verify
+          kubectl apply -f k8s/50-job-mysql-import.yaml --validate=false --insecure-skip-tls-verify
           echo "✅ Job de importação aplicada!"
 
-      # 1️⃣3️⃣ Mostrar URL pública do frontend
-      - name: 1️⃣3️⃣ Resumo final do deploy
+      # 🔁 Mostrar URL pública do frontend
+      - name: Mostrar URL pública
         run: |
-          echo "✅ Backend: ${{ env.DOCKER_USER }}/backend:${{ env.BACKEND_TAG }}"
-          echo "✅ Frontend: ${{ env.DOCKER_USER }}/frontend:${{ env.FRONTEND_TAG }}"
           echo "🌐 Acesse o frontend em:"
-          echo "👉 ${{ env.FRONTEND_URL }}"
-          echo "🚀 Deploy concluído com sucesso!"
+          echo "👉 http://3.143.251.114:30080"  # Não alterei, pois essa parece ser a URL de produção
