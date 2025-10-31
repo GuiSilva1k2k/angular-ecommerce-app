@@ -1,89 +1,68 @@
-name: Construir, Enviar Imagens Docker e Fazer Deploy no Kubernetes
+name: 🚀 Build & Deploy Docker para Kubernetes (via SSH)
 
 on:
   push:
-    branches:
-      - master  # Modifiquei para 'master', caso o seu branch principal seja 'master' (caso contrário, altere para 'main')
+    branches: [ "master" ]
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
+    env:
+      NAMESPACE: app-demo
+      DOCKER_USER: guisilva1k2k
+      BACKEND_NAME: backend-ecommerce
+      FRONTEND_NAME: frontend-ecommerce
+      BACKEND_TAG: latest
+      FRONTEND_TAG: latest
+      FRONTEND_URL: http://3.128.96.48:30080
+
     steps:
-      # 1️⃣ Baixar o código do repositório
-      - name: Baixar código do repositório
+      # 1️⃣ Checkout
+      - name: Checkout
         uses: actions/checkout@v3
 
-      # 2️⃣ Configurar Docker Buildx (para builds otimizados)
+      # 2️⃣ Configurar Docker Buildx
       - name: Configurar Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 3️⃣ Fazer login no Docker Hub
-      - name: Fazer login no Docker Hub
+      # 3️⃣ Login Docker Hub
+      - name: Login Docker
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          username: ${{ env.DOCKER_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 4️⃣ Construir e enviar imagem do Frontend (Angular)
-      - name: Construir e enviar imagem do Frontend (Angular)
+      # 4️⃣ Build & Push Backend
+      - name: Build & Push Backend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ env.DOCKER_USER }}/${{ env.BACKEND_NAME }}:${{ env.BACKEND_TAG }}
+
+      # 5️⃣ Build & Push Frontend
+      - name: Build & Push Frontend
         uses: docker/build-push-action@v6
         with:
           context: ./client
           push: true
-          tags: guisilva1k2k/frontend-ecommerce:dev  # Não alterei para manter a consistência com seu exemplo
-          no-cache: true
-          pull: true
+          tags: ${{ env.DOCKER_USER }}/${{ env.FRONTEND_NAME }}:${{ env.FRONTEND_TAG }}
 
-      # 5️⃣ Instalar kubectl (CLI do Kubernetes)
-      - name: Instalar kubectl
-        uses: azure/setup-kubectl@v3
+      # 6️⃣ Conectar via SSH e atualizar deployments
+      - name: Atualizar deploys na instância remota
+        uses: appleboy/ssh-action@v0.1.9
         with:
-          version: 'latest'
+          host: ${{ secrets.REMOTE_HOST }}      # IP da instância
+          username: ${{ secrets.REMOTE_USER }}  # usuário de serviço
+          key: ${{ secrets.REMOTE_SSH_KEY }}    # chave privada
+          script: |
+            echo "✅ Atualizando backend..."
+            kubectl set image deployment/backend app=${{ env.DOCKER_USER }}/${{ env.BACKEND_NAME }}:${{ env.BACKEND_TAG }} -n ${{ env.NAMESPACE }}
+            kubectl rollout status deployment/backend -n ${{ env.NAMESPACE }}
 
-      # 6️⃣ Configurar credenciais de acesso ao Kubernetes
-      - name: Configurar credenciais do Kubernetes
-        run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > $HOME/.kube/config
-          sed -i 's/127.0.0.1/3.143.251.114/g' $HOME/.kube/config
-          echo "✅ kubeconfig aplicado com sucesso!"
-          kubectl cluster-info --insecure-skip-tls-verify || echo "⚠️ Aviso: verifique o acesso ao cluster"
+            echo "✅ Atualizando frontend..."
+            kubectl set image deployment/frontend web=${{ env.DOCKER_USER }}/${{ env.FRONTEND_NAME }}:${{ env.FRONTEND_TAG }} -n ${{ env.NAMESPACE }}
+            kubectl rollout status deployment/frontend -n ${{ env.NAMESPACE }}
 
-
-      # 7️⃣ Aplicar os manifestos do Kubernetes (inclui backend, frontend, mysql e configmaps)
-      - name: Aplicar manifestos do Kubernetes
-        run: |
-          echo "📦 Aplicando manifestos no cluster..."
-          kubectl apply -k k8s --validate=false --insecure-skip-tls-verify
-          echo "✅ Manifestos aplicados com sucesso"
-
-      # 8️⃣ Atualizar imagens dos deployments
-      - name: Atualizar imagens no Kubernetes
-        run: |
-          echo "🔁 Atualizando imagens no cluster..."
-          kubectl set image deployment/backend app=pedrobrantis/backend:deploy -n app-demo --insecure-skip-tls-verify
-          kubectl set image deployment/frontend web=guisilva1k2k/frontend-ecommerce:deploy -n app-demo --insecure-skip-tls-verify
-          echo "✅ Imagens atualizadas com sucesso!"
-
-      # 9️⃣ Verificar o status dos deployments (garantir que subiram)
-      - name: Verificar status dos deployments
-        run: |
-          echo "🕓 Aguardando os pods ficarem prontos..."
-          kubectl rollout status deployment/backend -n app-demo --insecure-skip-tls-verify
-          kubectl rollout status deployment/frontend -n app-demo --insecure-skip-tls-verify
-          echo "✅ Deploy concluído com sucesso!"
-
-      # 🔟 Rodar a Job de importação do dump SQL
-      - name: Rodar Job de importação do SQL no MySQL
-        run: |
-          echo "📥 Rodando importação do SQL dump no MySQL..."
-          kubectl delete job mysql-import -n app-demo --ignore-not-found --insecure-skip-tls-verify
-          kubectl apply -f k8s/50-job-mysql-import.yaml --validate=false --insecure-skip-tls-verify
-          echo "✅ Job de importação aplicada!"
-
-      # 🔁 Mostrar URL pública do frontend
-      - name: Mostrar URL pública
-        run: |
-          echo "🌐 Acesse o frontend em:"
-          echo "👉 http://3.143.251.114:30080"  # Não alterei, pois essa parece ser a URL de produção
+            echo "🚀 Deploy concluído na instância remota"
