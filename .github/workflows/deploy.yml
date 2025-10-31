@@ -58,11 +58,11 @@ jobs:
           key: ${{ secrets.REMOTE_SSH_KEY }}    # chave privada
           script: |
             echo "✅ Atualizando backend..."
-            kubectl set image deployment/backend app=${{ env.DOCKER_USER }}/${{ env.BACKEND_NAME }}:${{ env.BACKEND_TAG }} -n $NAMESPACE
-            kubectl rollout status deployment/backend -n $NAMESPACE
+            kubectl set image deployment/backend app=${{ env.DOCKER_USER }}/${{ env.BACKEND_NAME }}:${{ env.BACKEND_TAG }} -n ${{ env.NAMESPACE }}
+            kubectl rollout status deployment/backend -n ${{ env.NAMESPACE }}
 
             echo "✅ Atualizando frontend..."
-            kubectl set image deployment/frontend web=${{ env.DOCKER_USER }}/${{ env.FRONTEND_NAME }}:${{ env.FRONTEND_TAG }} -n $NAMESPACE
-            kubectl rollout status deployment/frontend -n $NAMESPACE
+            kubectl set image deployment/frontend web=${{ env.DOCKER_USER }}/${{ env.FRONTEND_NAME }}:${{ env.FRONTEND_TAG }} -n ${{ env.NAMESPACE }}
+            kubectl rollout status deployment/frontend -n ${{ env.NAMESPACE }}
 
             echo "🚀 Deploy concluído na instância remota"
