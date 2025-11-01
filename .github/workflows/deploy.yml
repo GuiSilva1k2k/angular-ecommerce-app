@@ -1,0 +1,72 @@
+name: 🚀 Build & Deploy Docker para Kubernetes (via SSH)
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      NAMESPACE: app-demo
+      DOCKER_USER: guisilva1k2k
+      BACKEND_NAME: backend-ecommerce
+      FRONTEND_NAME: frontend-ecommerce
+      BACKEND_TAG: latest
+      FRONTEND_TAG: latest
+      FRONTEND_URL: http://3.128.96.48:30080
+
+    steps:
+      # 1️⃣ Checkout
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # 2️⃣ Configurar Docker Buildx
+      - name: Configurar Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 3️⃣ Login Docker Hub
+      - name: Login Docker
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKER_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 4️⃣ Build & Push Backend
+      - name: Build & Push Backend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ${{ env.DOCKER_USER }}/${{ env.BACKEND_NAME }}:latest
+            ${{ env.DOCKER_USER }}/${{ env.BACKEND_NAME }}:${{ github.sha }}
+
+      # 5️⃣ Build & Push Frontend
+      - name: Build & Push Frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./client
+          push: true
+          tags: |
+            ${{ env.DOCKER_USER }}/${{ env.FRONTEND_NAME }}:latest
+            ${{ env.DOCKER_USER }}/${{ env.FRONTEND_NAME }}:${{ github.sha }}
+
+      # 6️⃣ Conectar via SSH e atualizar deployments
+      - name: Atualizar deploys na instância remota
+        uses: appleboy/ssh-action@v0.1.9
+        with:
+          host: ${{ secrets.REMOTE_HOST }}      # IP da instância
+          username: ${{ secrets.REMOTE_USER }}  # usuário de serviço
+          key: ${{ secrets.REMOTE_SSH_KEY }}    # chave privada
+          script: |
+            echo "✅ Atualizando backend..."
+            kubectl set image deployment/backend app=${{ env.DOCKER_USER }}/${{ env.BACKEND_NAME }}:${{ github.sha }} -n ${{ env.NAMESPACE }}
+            kubectl rollout status deployment/backend -n ${{ env.NAMESPACE }}
+
+            echo "✅ Atualizando frontend..."
+            kubectl set image deployment/frontend web=${{ env.DOCKER_USER }}/${{ env.FRONTEND_NAME }}:${{ github.sha }} -n ${{ env.NAMESPACE }}
+            kubectl rollout status deployment/frontend -n ${{ env.NAMESPACE }}
+
+            echo "🚀 Deploy concluído na instância remota"

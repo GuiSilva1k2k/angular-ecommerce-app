@@ -1,0 +1,52 @@
+## 🚀 LOJA — COMANDOS IMPORTANTES (DEPLOY COMPLETO)
+
+### 🧩 1️⃣ ACESSAR A INSTÂNCIA AWS (SSH)
+cd C:\Users\joaov\documents\lifeai_ssh
+ssh -i "C:\Users\joaov\documents\lifeai_ssh\LifeAI_SSH.pem" ubuntu@18.188.47.129
+
+### 🧱 2️⃣ WINDOWS — BUILDAR E ENVIAR AS IMAGENS
+REM ===== BACKEND =====
+docker build -t loja-backend:dev -f backend/Dockerfile .
+docker save loja-backend:dev -o loja-backend-dev.tar
+
+REM ===== FRONTEND =====
+docker build -t loja-frontend:dev -f client/Dockerfile client
+docker save loja-frontend:dev -o loja-frontend-dev.tar
+
+REM ===== ENVIAR PARA A INSTÂNCIA =====
+scp -i "C:\Users\joaov\documents\lifeai_ssh\LifeAI_SSH.pem" loja-backend-dev.tar ubuntu@18.188.47.129:/home/ubuntu/
+scp -i "C:\Users\joaov\documents\lifeai_ssh\LifeAI_SSH.pem" loja-frontend-dev.tar ubuntu@18.188.47.129:/home/ubuntu/
+
+### ☁️ 3️⃣ INSTÂNCIA UBUNTU — IMPORTAR E ATUALIZAR NO CLUSTER
+# ===== IMPORTAR AS IMAGENS =====
+sudo k3s ctr images import loja-backend-dev.tar
+sudo k3s ctr images import loja-frontend-dev.tar
+
+# ===== ATUALIZAR OS DEPLOYMENTS =====
+kubectl set image deployment/backend pedrobrantis/backend=loja-backend:dev -n app-demo
+kubectl set image deployment/frontend web=loja-frontend:dev -n app-demo
+
+# ===== REINICIAR OS PODS =====
+kubectl rollout restart deployment/backend -n app-demo
+kubectl rollout restart deployment/frontend -n app-demo
+
+# ===== VERIFICAR SE TUDO SUBIU =====
+kubectl get pods -n app-demo -w
+
+### 🧠 4️⃣ COMANDOS ÚTEIS (DEBUG E TESTES)
+# Ver logs do backend
+kubectl logs -n app-demo -l app.kubernetes.io/name=backend -f
+
+# Entrar no pod do backend
+kubectl exec -it -n app-demo $(kubectl get pod -n app-demo -l app.kubernetes.io/name=backend -o name) -- sh
+
+# Ver se o backend responde
+wget -qO- http://localhost:3000/api/v1/products
+
+# Ver deployments e services
+kubectl get deployments,svc -n app-demo
+
+# Reiniciar tudo (opcional)
+kubectl rollout restart deployment/backend -n app-demo
+kubectl rollout restart deployment/frontend -n app-demo
+kubectl rollout restart statefulset/mysql -n app-demo

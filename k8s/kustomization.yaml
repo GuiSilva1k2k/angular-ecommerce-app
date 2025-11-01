@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: app-demo
+resources:
+  - 00-namespace.yaml
+  - 01-secret-mysql.yaml
+  - 02-configmap-app.yaml
+  - 03-configmap-mysql-init.yaml
+  - 10-mysql-service.yaml
+  - 11-mysql-statefulset.yaml
+  - 20-backend-service.yaml
+  - 21-backend-deployment.yaml
+  - 30-frontend-service.yaml
+  - 31-frontend-deployment.yaml
+  # - 50-job-mysql-import.yaml

@@ -1,0 +1,106 @@
+<div class="register-container">
+  <div class="form-container">
+    <h2>Sign Up to Eccom</h2>
+    <nz-alert
+      *ngIf="errorMessage"
+      nzShowIcon
+      nzType="error"
+      [nzMessage]="errorMessage"
+      [ngStyle]="{ 'margin-bottom': '16px' }"
+    ></nz-alert>
+
+    <form #registerForm="ngForm" (ngSubmit)="onSubmit()">
+      <!-- Username -->
+      <div class="input-container">
+        <label for="username">Username</label>
+        <input
+          nz-input
+          type="text"
+          id="username"
+          name="username"
+          [(ngModel)]="username"
+          placeholder="Enter your username"
+        />
+      </div>
+
+      <!-- Full Name -->
+      <div class="input-container">
+        <label for="fullName">Full name</label>
+        <input
+          nz-input
+          type="text"
+          id="fullName"
+          name="fullName"
+          [(ngModel)]="fullName"
+          placeholder="Enter your full name"
+        />
+      </div>
+
+      <!-- Email -->
+      <div class="input-container">
+        <label for="email">Email address</label>
+        <input
+          nz-input
+          type="email"
+          id="email"
+          name="email"
+          [(ngModel)]="email"
+          placeholder="Enter your email address"
+        />
+      </div>
+
+      <!-- Passwords -->
+      <div class="password-container">
+        <div class="input-container">
+          <label for="password">Password</label>
+          <input
+            nz-input
+            type="password"
+            id="password"
+            name="password"
+            [(ngModel)]="password"
+            placeholder="Enter a strong password"
+          />
+        </div>
+        <div class="input-container">
+          <label for="confirmPassword">Confirm password</label>
+          <input
+            nz-input
+            type="password"
+            id="confirmPassword"
+            name="confirmPassword"
+            [(ngModel)]="confirmPassword"
+            placeholder="Repeat your password"
+          />
+        </div>
+      </div>
+
+      <!-- Checkboxes -->
+      <div class="checkbox-group">
+        <div class="checkbox-container">
+          <input type="checkbox" id="agreeEmails" />
+          <label for="agreeEmails">I agree to receive instructional and promotional emails</label>
+        </div>
+        <div class="checkbox-container">
+          <input type="checkbox" id="agreeTerms" />
+          <label for="agreeTerms">I agree to Eccom's Terms of Use & Privacy Policy</label>
+        </div>
+      </div>
+
+      <!-- Submit -->
+      <div class="cta-container">
+        <button
+          nz-button
+          type="submit"
+          [disabled]="!canSubmit()"
+          [nzLoading]="loading"
+        >
+          Sign up
+        </button>
+        <div>
+          <a routerLink="/login">Sign in with an existing user</a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
